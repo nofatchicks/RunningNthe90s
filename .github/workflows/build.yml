@@ -1,4 +1,4 @@
-name: SoulWoRn Build + Deploy
+name: SoulWoRn Build + Deploy 
 
 on:
   push:
