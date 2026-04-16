@@ -263,5 +263,5 @@ echo "gsk_..."    > ~/.nkit_groq_key      # Groq -- free
   ▓                                                              ▓
   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 
-                    "the ghost in the machine" 👽
+                    "the ghost in the machine" 👽 
 ```
