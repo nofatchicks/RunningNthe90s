@@ -151,7 +151,8 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.ver }}"
           REPO="nofatchicks/soulworn"
-          cat > docs/index.html << HTMLEOF
+         mkdir -p docs
+         cat > docs/index.html << HTMLEOF
           <!DOCTYPE html>
           <html lang="en">
           <head>
