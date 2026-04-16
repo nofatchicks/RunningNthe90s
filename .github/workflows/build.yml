@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── BUILD WINDOWS EXE ──────────────────────────────────────────────────────
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -19,21 +19,9 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install pyinstaller anthropic requests pyserial pyusb
-          pip install pillow  # for icon
+          pip install pyinstaller anthropic requests pyserial
 
       - name: Build exe
-        run: |
-          pyinstaller --onefile `
-            --windowed `
-            --name soulworn_win `
-            --icon scripts/icon.ico `
-            --add-data "scripts/icon.ico;." `
-            soulworn_win.py
-        continue-on-error: true
-
-      - name: Build exe (no icon fallback)
-        if: failure()
         run: |
           pyinstaller --onefile --windowed --name soulworn_win soulworn_win.py
 
@@ -43,7 +31,6 @@ jobs:
           name: soulworn-windows
           path: dist/soulworn_win.exe
 
-  # ── BUILD LINUX BINARY ─────────────────────────────────────────────────────
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +44,7 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y python3-tk android-tools-adb
+          sudo apt-get install -y python3-tk
 
       - name: Install Python deps
         run: |
@@ -73,7 +60,6 @@ jobs:
           name: soulworn-linux
           path: dist/soulworn_linux
 
-  # ── BUILD ARCH BINARY ──────────────────────────────────────────────────────
   build-arch:
     runs-on: ubuntu-latest
     container:
@@ -92,7 +78,6 @@ jobs:
 
       - name: Build Arch binary
         run: |
-          pyinstaller --onefile --name soulworn_arch_bin soulworn_arch.py || \
           pyinstaller --onefile --name soulworn_arch_bin soulworn_win.py
 
       - name: Upload Arch artifact
@@ -101,7 +86,6 @@ jobs:
           name: soulworn-arch
           path: dist/soulworn_arch_bin
 
-  # ── CREATE RELEASE ─────────────────────────────────────────────────────────
   release:
     needs: [build-windows, build-linux, build-arch]
     runs-on: ubuntu-latest
@@ -117,6 +101,9 @@ jobs:
         with:
           path: artifacts/
 
+      - name: List artifacts (debug)
+        run: find artifacts/ -type f
+
       - name: Get version
         id: version
         run: echo "ver=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
@@ -127,17 +114,16 @@ jobs:
           tag_name: v${{ steps.version.outputs.ver }}
           name: SoulWoRn ${{ steps.version.outputs.ver }}
           body: |
-            ## SoulWoRn - Auto Build ${{ steps.version.outputs.ver }}
-
-            ### Download for your platform:
+            ## SoulWoRn -- Android Toolbox
+            Build: ${{ steps.version.outputs.ver }}
 
             | Platform | File | Notes |
             |---|---|---|
-            | Windows | `soulworn_win.exe` | Double-click, no install needed |
-            | Linux | `soulworn_linux` | `chmod +x soulworn_linux && ./soulworn_linux` |
+            | Windows | `soulworn_win.exe` | double-click, no install needed |
+            | Linux | `soulworn_linux` | chmod +x then run |
             | Arch Linux | `soulworn_arch_bin` | Arch/Manjaro/EndeavourOS |
 
-            ### No Python needed. No PATH needed. No admin needed.
+            No Python needed. No PATH needed. No admin needed.
 
             > ghost in the machine -- nofatchicks
           files: |
@@ -149,10 +135,10 @@ jobs:
 
       - name: Generate download page
         run: |
+          mkdir -p docs
           VERSION="${{ steps.version.outputs.ver }}"
-          REPO="nofatchicks/soulworn"
-         mkdir -p docs
-         cat > docs/index.html << HTMLEOF
+          REPO="nofatchicks/RunningNthe90s"
+          cat > docs/index.html << 'HTMLEOF'
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -171,38 +157,38 @@ jobs:
               align-items: center;
               padding: 40px 20px;
             }
-            .banner {
+            pre {
               color: #cc0000;
-              font-size: clamp(10px, 2vw, 16px);
-              white-space: pre;
+              font-size: clamp(7px, 1.5vw, 13px);
               text-align: center;
               margin-bottom: 24px;
               line-height: 1.2;
             }
             h1 { color: #cc0000; font-size: 2em; margin-bottom: 8px; }
-            .sub { color: #6622cc; margin-bottom: 32px; font-size: 0.9em; }
+            .sub { color: #6622cc; margin-bottom: 8px; font-size: 0.9em; }
+            .ver { color: #444455; font-size: 0.8em; margin-bottom: 32px; }
             .cards {
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+              grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
               gap: 16px;
               width: 100%;
-              max-width: 900px;
+              max-width: 880px;
               margin-bottom: 40px;
             }
             .card {
               background: #12121a;
               border: 1px solid #cc0000;
               border-radius: 8px;
-              padding: 24px;
+              padding: 20px;
             }
             .card h2 { color: #aa44ff; margin-bottom: 8px; }
-            .card p  { color: #666677; font-size: 0.85em; margin-bottom: 16px; }
-            .card .cmd {
+            .card p  { color: #666677; font-size: 0.85em; margin-bottom: 12px; }
+            .cmd {
               background: #020208;
               color: #00ff88;
-              padding: 8px 12px;
+              padding: 8px 10px;
               border-radius: 4px;
-              font-size: 0.8em;
+              font-size: 0.78em;
               margin-bottom: 12px;
               word-break: break-all;
             }
@@ -212,114 +198,71 @@ jobs:
               color: white;
               text-decoration: none;
               text-align: center;
-              padding: 12px;
+              padding: 10px;
               border-radius: 6px;
               font-weight: bold;
               font-family: monospace;
-              transition: background 0.2s;
             }
             .btn:hover { background: #ff2222; }
-            .btn.purple { background: #6622cc; }
-            .btn.purple:hover { background: #aa44ff; }
-            .features {
-              max-width: 900px;
-              width: 100%;
-              background: #12121a;
-              border: 1px solid #1a1a26;
-              border-radius: 8px;
-              padding: 24px;
-              margin-bottom: 32px;
-            }
-            .features h2 { color: #cc0000; margin-bottom: 16px; }
-            .feat-grid {
-              display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-              gap: 8px;
-            }
-            .feat {
-              color: #cc99ff;
-              font-size: 0.85em;
-              padding: 6px 0;
-            }
-            .feat::before { content: ">> "; color: #cc0000; }
-            .version { color: #666677; font-size: 0.8em; margin-top: 8px; }
+            .btn.p { background: #6622cc; }
+            .btn.p:hover { background: #aa44ff; }
+            .btn.d { background: #1a1a26; border: 1px solid #cc0000; }
             footer { color: #333344; font-size: 0.8em; margin-top: 40px; }
-            @media (max-width: 600px) { .banner { font-size: 8px; } }
+            a { color: #6622cc; }
           </style>
           </head>
           <body>
-          <div class="banner">
-          ██████╗  ██████╗ ██╗   ██╗██╗     ██╗    ██╗ ██████╗ ██████╗ ███╗   ██╗
-          ██╔════╝██╔═══██╗██║   ██║██║     ██║    ██║██╔═══██╗██╔══██╗████╗  ██║
-          ███████╗██║   ██║██║   ██║██║     ██║ █╗ ██║██║   ██║██████╔╝██╔██╗ ██║
-          ╚════██║██║   ██║██║   ██║██║     ██║███╗██║██║   ██║██╔══██╗██║╚██╗██║
-          ███████║╚██████╔╝╚██████╔╝███████╗╚███╔███╔╝╚██████╔╝██║  ██║██║ ╚████║
-          ╚══════╝ ╚═════╝  ╚═════╝ ╚══════╝ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝</div>
+          <pre>
+  ██████╗  ██████╗ ██╗   ██╗██╗     ██╗    ██╗ ██████╗ ██████╗ ███╗   ██╗
+  ██╔════╝██╔═══██╗██║   ██║██║     ██║    ██║██╔═══██╗██╔══██╗████╗  ██║
+  ███████╗██║   ██║██║   ██║██║     ██║ █╗ ██║██║   ██║██████╔╝██╔██╗ ██║
+  ╚════██║██║   ██║██║   ██║██║     ██║███╗██║██║   ██║██╔══██╗██║╚██╗██║
+  ███████║╚██████╔╝╚██████╔╝███████╗╚███╔███╔╝╚██████╔╝██║  ██║██║ ╚████║
+  ╚══════╝ ╚═════╝  ╚═════╝ ╚══════╝ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝
+          </pre>
 
           <h1>SoulWoRn</h1>
-          <div class="sub">android toolbox &bull; ghost in the machine &bull; nofatchicks &bull; GPL-3.0</div>
-          <div class="version">latest build: ${VERSION}</div>
+          <div class="sub">android toolbox &bull; ghost in the machine &bull; nofatchicks</div>
+          <div class="ver">latest build: VERSION_PLACEHOLDER</div>
 
-          <div class="cards" style="margin-top:32px">
+          <div class="cards">
             <div class="card">
               <h2>Windows</h2>
               <p>Double-click and run. No Python, no PATH, no admin needed.</p>
               <div class="cmd">soulworn_win.exe</div>
-              <a class="btn" href="https://github.com/${REPO}/releases/latest/download/soulworn_win.exe">
+              <a class="btn" href="https://github.com/nofatchicks/RunningNthe90s/releases/latest/download/soulworn_win.exe">
                 Download .exe
               </a>
             </div>
             <div class="card">
               <h2>Linux</h2>
-              <p>Single binary. Works on Ubuntu, Debian, any x86_64.</p>
-              <div class="cmd">chmod +x soulworn_linux<br>./soulworn_linux</div>
-              <a class="btn purple" href="https://github.com/${REPO}/releases/latest/download/soulworn_linux">
+              <p>Single binary. Works on any x86_64 Linux.</p>
+              <div class="cmd">chmod +x soulworn_linux && ./soulworn_linux</div>
+              <a class="btn p" href="https://github.com/nofatchicks/RunningNthe90s/releases/latest/download/soulworn_linux">
                 Download Linux
               </a>
             </div>
             <div class="card">
               <h2>Arch Linux</h2>
               <p>Native Arch binary. pacman ecosystem.</p>
-              <div class="cmd">chmod +x soulworn_arch_bin<br>./soulworn_arch_bin</div>
-              <a class="btn purple" href="https://github.com/${REPO}/releases/latest/download/soulworn_arch_bin">
+              <div class="cmd">chmod +x soulworn_arch_bin && ./soulworn_arch_bin</div>
+              <a class="btn p" href="https://github.com/nofatchicks/RunningNthe90s/releases/latest/download/soulworn_arch_bin">
                 Download Arch
               </a>
             </div>
             <div class="card">
-              <h2>Python Source</h2>
-              <p>Run from source. Python 3.9+ required.</p>
-              <div class="cmd">pip install anthropic requests<br>python soulworn_win.py</div>
-              <a class="btn" href="https://github.com/${REPO}" style="background:#1a1a26;border:1px solid #cc0000">
+              <h2>Source</h2>
+              <p>Python 3.9+ required. pip install anthropic for AI.</p>
+              <div class="cmd">python soulworn_win.py</div>
+              <a class="btn d" href="https://github.com/nofatchicks/RunningNthe90s">
                 GitHub Source
               </a>
             </div>
           </div>
 
-          <div class="features">
-            <h2>Features</h2>
-            <div class="feat-grid">
-              <div class="feat">FRP Bypass -- 8 core + 8 extended methods</div>
-              <div class="feat">Smart device profiling + method scoring</div>
-              <div class="feat">Success rate tracking per device</div>
-              <div class="feat">Audit trail logging</div>
-              <div class="feat">Wizard mode -- guided step by step</div>
-              <div class="feat">TalkBack / Chrome / dialer exploits</div>
-              <div class="feat">Odin helper -- Samsung firmware flash</div>
-              <div class="feat">Sideload ZIP builder</div>
-              <div class="feat">USB device arbitration dialog</div>
-              <div class="feat">Bloatware removal -- Samsung/Pixel/Carrier</div>
-              <div class="feat">Wireless ADB tools</div>
-              <div class="feat">Built-in terminal emulator</div>
-              <div class="feat">Ghosteey AI -- Claude / Groq / Ollama</div>
-              <div class="feat">ADB auto-discovery -- no PATH needed</div>
-              <div class="feat">Blood Red + Royal Purple UI</div>
-              <div class="feat">Samsung S8+ / Pixels / MTK / Any 2012+</div>
-            </div>
-          </div>
-
           <footer>
             nofatchicks &bull; kelowna bc &bull; GPL-3.0 &bull;
-            <a href="https://github.com/${REPO}" style="color:#6622cc">github.com/${REPO}</a>
+            <a href="https://github.com/nofatchicks/RunningNthe90s">github</a>
           </footer>
           </body>
           </html>
